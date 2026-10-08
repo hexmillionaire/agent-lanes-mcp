@@ -6,10 +6,10 @@ The server uses the official MCP TypeScript SDK over stdio. All four tools are r
 
 ## Install from npm
 
-Requires Node.js 24.8+ and Git. [Agent Lanes MCP 0.2.0 is available on npm](https://www.npmjs.com/package/@hexmillionaire/agent-lanes-mcp).
+Requires Node.js 24.8+ and Git. [Agent Lanes MCP 0.3.0 is available on npm](https://www.npmjs.com/package/@hexmillionaire/agent-lanes-mcp).
 
 ```sh
-npm install -g @hexmillionaire/agent-lanes-mcp@0.2.0
+npm install -g @hexmillionaire/agent-lanes-mcp@0.3.0
 agent-lanes-mcp --repo /absolute/path/to/project --doctor
 agent-lanes-mcp --repo /absolute/path/to/project --print-config claude
 agent-lanes-mcp --repo /absolute/path/to/project --print-config codex
@@ -99,4 +99,12 @@ Same-user processes can edit task scopes and notes. The tool is a workflow helpe
 
 `npm test` uses the official SDK client for discovery, real Git audits, setup helpers, validation failures, and stdio handshakes. `npm run test:inspector` independently checks strict schema discovery and all four tools using the pinned [official MCP Inspector](https://github.com/modelcontextprotocol/inspector/blob/main/clients/cli/README.md). Both run in CI on Linux, Windows, and macOS. Inspector is a development dependency, excluded from production installs. Dependencies are pinned in `package-lock.json`.
 
-The MIT engine is an unchanged Agent Lanes 0.2.0 snapshot; [source and hash](vendor/README.md) are recorded. Update it with source tests. Related: [Agent Desk](https://github.com/hexmillionaire/agent-desk).
+The MIT engine is an unchanged Agent Lanes 0.3.0 snapshot; [source and hash](vendor/README.md) are recorded. Update it with source tests. Related: [Agent Desk](https://github.com/hexmillionaire/agent-desk).
+
+## Performance and reliability review
+
+See the [October 2026 investigation](https://github.com/hexmillionaire/Agent-Lanes/blob/main/docs/INVESTIGATION.md) for measured results, language/runtime decisions, limitations, and the next improvements. Use the latest Node 24 LTS patch; Node 24.8 is the tested minimum.
+
+Structured results accompany the existing JSON-array/report/Markdown text. `list_tasks` accepts optional `limit` (1–200) and `offset` (0–200); it returns all tasks by default. Its structured result includes `totalCount` and `nextOffset`. Pages use fresh ID-sorted reads. Extra task-file properties are omitted. Tool errors avoid raw filesystem paths and malformed JSON fragments.
+
+The server allows eight concurrent tool calls with a 30-second cancellable budget, a 256 KiB stdio input buffer, and an 8 MiB result limit counting text and structured data. Oversized task lists return an explicit paging error. Doctor's diagnostic phase has a 60-second budget after initial repository validation; it verifies all saved bases and reports `auditedBaseCount`. An out-of-scope report is valid diagnostic data, while an unavailable base fails diagnosis. Closing stdin aborts outstanding work and closes the server.

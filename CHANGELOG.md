@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Add validated structured results alongside existing text results; keep exactly four read-only tools.
+- Add optional task pagination, public-field filtering, safe errors, cancellation, and bounded request/response sizes.
+- Verify every saved Git base in doctor and exercise a real scope call.
+- Load the SDK only for protocol/doctor execution; update development-only Inspector to 2.10.1.
+- Update the shared engine to 0.3.0 and verify its version and hash in CI.
+
 ## 0.2.0
 
 - Absolute-path Claude JSON/Codex TOML output without editing installed clients.

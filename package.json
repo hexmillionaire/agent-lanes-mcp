@@ -1,6 +1,6 @@
 {
   "name": "@hexmillionaire/agent-lanes-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Read-only MCP access to portable coding-task scopes and handoffs.",
   "type": "module",
   "bin": {
@@ -20,7 +20,8 @@
     "start": "node bin/agent-lanes-mcp.mjs",
     "test": "node --test",
     "test:inspector": "node scripts/inspector-smoke.mjs",
-    "test:package": "node scripts/package-smoke.mjs"
+    "test:package": "node scripts/package-smoke.mjs",
+    "test:vendor": "node scripts/verify-vendor.mjs"
   },
   "engines": {
     "node": ">=24.8.0"
@@ -42,7 +43,7 @@
     "handoff"
   ],
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "2.10.0"
+    "@modelcontextprotocol/inspector": "2.10.1"
   },
   "publishConfig": {
     "access": "public"

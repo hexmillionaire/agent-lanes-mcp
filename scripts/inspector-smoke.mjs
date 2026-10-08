@@ -35,15 +35,24 @@ try {
   await writeFile(path.join(root, 'mcp.json'), clientConfig('claude', [{ path: root }]));
   const discovery = await run(['--method', 'tools/list', '--strict']);
   assert.deepEqual(discovery.tools.map(tool => tool.name).sort(), TOOL_NAMES);
-  for (const tool of discovery.tools) assert.equal(tool.annotations.readOnlyHint, true);
+  for (const tool of discovery.tools) {
+    assert.equal(tool.annotations.readOnlyHint, true);
+    assert.equal(tool.outputSchema.type, 'object');
+  }
   const repos = await call('list_repositories', {});
   assert.equal(JSON.parse(repos.content[0].text)[0].id, 'repo-1');
+  assert.equal(repos.structuredContent.repositories[0].id, 'repo-1');
   const tasks = await call('list_tasks', { repository: 'repo-1' });
   assert.equal(JSON.parse(tasks.content[0].text)[0].id, 'fix');
+  assert.equal(tasks.structuredContent.tasks[0].id, 'fix');
+  assert.equal(tasks.structuredContent.totalCount, 1);
+  assert.equal(tasks.structuredContent.nextOffset, null);
   await writeFile(path.join(root, 'outside.txt'), 'scope failure\n');
   const check = await call('check_scope', { repository: 'repo-1', task: 'fix' });
   assert.equal(JSON.parse(check.content[0].text).ok, false);
+  assert.equal(check.structuredContent.ok, false);
   const packet = await call('get_handoff', { repository: 'repo-1', task: 'fix' });
   assert.match(packet.content[0].text, /outside.txt/);
+  assert.equal(packet.structuredContent.handoff, packet.content[0].text);
   console.log('Official MCP Inspector: strict schema discovery and all four tools passed over stdio.');
 } finally { await rm(root, { recursive: true, force: true }); }
