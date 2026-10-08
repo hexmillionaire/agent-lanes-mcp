@@ -4,12 +4,12 @@ Let Claude Code, Codex, or another MCP client inspect task scopes and get fresh 
 
 The server uses the official MCP TypeScript SDK over stdio. All four tools are read-only. Repositories are an explicit startup allowlist; clients use IDs, never arbitrary filesystem paths. No model API keys are needed.
 
-## Install from npm
+## Install
 
-Requires Node.js 24.8+ and Git. [Agent Lanes MCP 0.3.0 is available on npm](https://www.npmjs.com/package/@hexmillionaire/agent-lanes-mcp).
+Requires Node.js 24.8+ and Git. [Agent Lanes MCP 0.3.0 is released on GitHub](https://github.com/hexmillionaire/agent-lanes-mcp/releases/tag/v0.3.0). npm publication awaits account approval; use the verified release archive below.
 
 ```sh
-npm install -g @hexmillionaire/agent-lanes-mcp@0.3.0
+npm install -g https://github.com/hexmillionaire/agent-lanes-mcp/releases/download/v0.3.0/hexmillionaire-agent-lanes-mcp-0.3.0.tgz
 agent-lanes-mcp --repo /absolute/path/to/project --doctor
 agent-lanes-mcp --repo /absolute/path/to/project --print-config claude
 agent-lanes-mcp --repo /absolute/path/to/project --print-config codex
