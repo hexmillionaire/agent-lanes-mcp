@@ -1,0 +1,22 @@
+name: Bug report
+description: Reproduce a problem with the local workflow
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the command or UI action, expected result, and actual result. Use a small example repository.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, Git version, tool version, and MCP client if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs
+      description: Remove private task notes, paths, credentials, and transcripts before posting.
