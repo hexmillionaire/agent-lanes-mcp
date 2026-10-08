@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -55,7 +55,7 @@ test('setup CLI prints JSON, resolves repository roots, and rejects mixed modes'
   const repositories = await fixture(t);
   const result = await run(process.execPath, [serverPath, '--repo', repositories[0].path, '--print-config', 'claude']);
   assert.equal(result.code, 0, result.stderr);
-  assert.equal(JSON.parse(result.stdout).mcpServers['agent-lanes'].args[2], repositories[0].path);
+  assert.equal(JSON.parse(result.stdout).mcpServers['agent-lanes'].args[2], await realpath(repositories[0].path));
   const invalid = await run(process.execPath, [serverPath, '--repo', repositories[0].path, '--doctor', '--print-config', 'claude']);
   assert.equal(invalid.code, 1);
   assert.match(invalid.stderr, /not both/);

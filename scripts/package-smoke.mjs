@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile, rm, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, rm, access, realpath } from 'node:fs/promises';
 import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
@@ -7,7 +7,8 @@ import path from 'node:path';
 
 const source = fileURLToPath(new URL('../', import.meta.url));
 const manifest = JSON.parse(await readFile(path.join(source, 'package.json'), 'utf8'));
-const temp = await mkdtemp(path.join(os.tmpdir(), 'agent-package-'));
+const tempBase = await realpath(os.tmpdir());
+const temp = await mkdtemp(path.join(tempBase, 'agent-package-'));
 const npm = process.env.npm_execpath;
 if (!npm) throw new Error('Run through npm run test:package.');
 
@@ -82,6 +83,6 @@ try {
   } else throw new Error('Unknown package.');
   console.log(`${manifest.name}: fresh production archive installation and CLI workflow passed.`);
 } finally {
-  assert.ok(temp.startsWith(path.join(os.tmpdir(), 'agent-package-')));
+  assert.ok(temp.startsWith(path.join(tempBase, 'agent-package-')));
   await rm(temp, { recursive: true, force: true });
 }
