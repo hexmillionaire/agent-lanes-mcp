@@ -30,7 +30,7 @@ function run(command, args, { cwd = source, expected = 0 } = {}) {
 
 try {
   const packed = JSON.parse(await run(process.execPath, [npm, 'pack', '--json', '--pack-destination', temp]))[0];
-  assert.equal(packed.version, '0.2.0');
+  assert.equal(packed.version, manifest.version);
   for (const file of packed.files) assert.ok(!/^(node_modules|test|\.agent-lanes|\.git)\//.test(file.path), file.path);
   const install = path.join(temp, 'install');
   await mkdir(install);

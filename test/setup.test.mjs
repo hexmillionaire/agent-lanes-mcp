@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, writeFile, rm, realpath } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -36,8 +36,25 @@ test('doctor probes real stdio and validates tasks', async t => {
   assert.equal(result.ok, true);
   assert.deepEqual(result.tools, TOOL_NAMES);
   assert.equal(result.repositories[0].taskCount, 1);
+  assert.equal(result.repositories[0].auditedBaseCount, 1);
   await writeFile(path.join(repositories[0].path, '.agent-lanes/fix.json'), '{}');
   await assert.rejects(diagnose(repositories), /Unsupported task format/);
+});
+
+test('doctor detects unavailable base commits even when task JSON is valid', async t => {
+  const repositories = await fixture(t);
+  await startTask(repositories[0].path, { id: 'other', goal: 'Another task', allow: ['app.js'] });
+  const file = path.join(repositories[0].path, '.agent-lanes/other.json');
+  const task = JSON.parse(await readFile(file, 'utf8'));
+  await writeFile(file, JSON.stringify({ ...task, base: '0'.repeat(40) }));
+  await assert.rejects(diagnose(repositories), /Git/);
+});
+
+test('doctor can be cancelled before launching a child process', async t => {
+  const repositories = await fixture(t);
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(diagnose(repositories, { signal: controller.signal }), { name: 'AbortError' });
 });
 
 export function run(command, args, options = {}) {
@@ -59,4 +76,8 @@ test('setup CLI prints JSON, resolves repository roots, and rejects mixed modes'
   const invalid = await run(process.execPath, [serverPath, '--repo', repositories[0].path, '--doctor', '--print-config', 'claude']);
   assert.equal(invalid.code, 1);
   assert.match(invalid.stderr, /not both/);
+  const noAccess = await run(process.execPath, [serverPath, '--repo', path.join(repositories[0].path, 'absent'), '--doctor', '--print-config', 'claude']);
+  assert.match(noAccess.stderr, /not both/);
+  const badClient = await run(process.execPath, [serverPath, '--repo', path.join(repositories[0].path, 'absent'), '--print-config', 'unsupported']);
+  assert.match(badClient.stderr, /must be claude or codex/);
 });
