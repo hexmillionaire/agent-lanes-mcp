@@ -1,14 +1,50 @@
 {
   "name": "@hexmillionaire/agent-lanes-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Read-only MCP access to portable coding-task scopes and handoffs.",
   "type": "module",
-  "bin": { "agent-lanes-mcp": "bin/agent-lanes-mcp.mjs" },
-  "files": ["bin", "src", "vendor", "README.md", "LICENSE"],
-  "scripts": { "start": "node bin/agent-lanes-mcp.mjs", "test": "node --test" },
-  "engines": { "node": ">=24.8.0" },
-  "dependencies": { "@modelcontextprotocol/sdk": "1.32.1", "zod": "4.6.5" },
-  "repository": { "type": "git", "url": "https://github.com/hexmillionaire/agent-lanes-mcp.git" },
+  "bin": {
+    "agent-lanes-mcp": "bin/agent-lanes-mcp.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "vendor",
+    "README.md",
+    "LICENSE",
+    "docs",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "start": "node bin/agent-lanes-mcp.mjs",
+    "test": "node --test",
+    "test:inspector": "node scripts/inspector-smoke.mjs",
+    "test:package": "node scripts/package-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=24.8.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "4.6.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hexmillionaire/agent-lanes-mcp.git"
+  },
   "license": "MIT",
-  "keywords": ["mcp", "codex", "claude-code", "task-scope", "handoff"]
+  "keywords": [
+    "mcp",
+    "codex",
+    "claude-code",
+    "task-scope",
+    "handoff"
+  ],
+  "devDependencies": {
+    "@modelcontextprotocol/inspector": "2.10.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

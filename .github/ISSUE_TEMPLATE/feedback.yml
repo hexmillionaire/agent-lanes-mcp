@@ -1,0 +1,16 @@
+name: Workflow feedback
+description: Tell us what helped and what got in the way
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What were you trying to do?
+      description: Describe your agent/client, task, and workflow without private information.
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: What worked, and where did you get stuck?
+    validations:
+      required: true

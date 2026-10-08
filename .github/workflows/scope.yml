@@ -1,0 +1,25 @@
+name: Agent Lanes scope
+on: [pull_request]
+permissions:
+  contents: read
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Fetch PR head objects
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: git fetch --no-tags origin "$PR_HEAD"
+      - uses: hexmillionaire/Agent-Lanes@503ff61372101af19127524e8fafade0014217bd # Reviewed v0.2.0 scope engine
+        with:
+          lane: development
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}

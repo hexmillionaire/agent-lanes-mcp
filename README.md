@@ -20,6 +20,16 @@ The last command waits for JSON-RPC messages on stdin. That is normal for a stdi
 
 Create tasks using [Agent Lanes](https://github.com/hexmillionaire/agent-lanes) before querying them. This repo vendors that tool's report engine and runs independently after its own install. It does not require a sibling checkout.
 
+## Setup helpers
+
+```sh
+node bin/agent-lanes-mcp.mjs --repo /absolute/path/to/project --doctor
+node bin/agent-lanes-mcp.mjs --repo /absolute/path/to/project --print-config claude
+node bin/agent-lanes-mcp.mjs --repo /absolute/path/to/project --print-config codex
+```
+
+Doctor verifies repository/task data and a real stdio handshake with exactly four read-only tools. It does not connect your installed client app. Print-config emits an absolute-path snippet to merge with existing configuration and never writes client settings. Regenerate snippets if Node or the installed package moves. See the [connected quickstart](https://github.com/hexmillionaire/Agent-Lanes/blob/main/docs/QUICKSTART.md).
+
 ## Tools
 
 | Tool | Input | Result |
@@ -74,4 +84,6 @@ Same-user processes can edit task scopes and notes. The tool is a workflow helpe
 
 ## Development
 
-`npm test` uses the official SDK client for tool discovery, real Git audits, validation failures, and a full stdio handshake. Dependencies are pinned in `package-lock.json`. The MIT report engine at `vendor/agent-lanes.mjs` is an unchanged snapshot of Agent Lanes 0.1.0; update it deliberately with corresponding source tests. Related: [Agent Desk](https://github.com/hexmillionaire/agent-desk).
+`npm test` uses the official SDK client for discovery, real Git audits, setup helpers, validation failures, and stdio handshakes. `npm run test:inspector` independently checks strict schema discovery and all four tools using the pinned [official MCP Inspector](https://github.com/modelcontextprotocol/inspector/blob/main/clients/cli/README.md). Both run in CI on Linux, Windows, and macOS. Inspector is a development dependency, excluded from production installs. Dependencies are pinned in `package-lock.json`.
+
+The MIT engine is an unchanged Agent Lanes 0.2.0 snapshot; [source and hash](vendor/README.md) are recorded. Update it with source tests. Related: [Agent Desk](https://github.com/hexmillionaire/agent-desk).

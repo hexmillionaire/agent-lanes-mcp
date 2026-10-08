@@ -4,7 +4,7 @@ import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/pr
 import path from 'node:path';
 
 const execute = promisify(execFile);
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 const ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const STATES = ['planned', 'working', 'blocked', 'review', 'done'];
 
@@ -101,6 +101,7 @@ export async function startTask(root, { id, goal, allow, deny = [], agent = 'uns
   const commit = (await git(root, ['rev-parse', '--verify', '--end-of-options', `${base}^{commit}`])).trim();
   const now = new Date().toISOString();
   const task = validateTask({ version: 1, id, goal, allow, deny, agent, base: commit, state: 'planned', summary: '', next: '', createdAt: now, updatedAt: now });
+  if ((await listTasks(root)).length >= 200) throw new Error('At most 200 tasks are supported per repository.');
   const dir = await taskDirectory(root, true);
   await writeFile(path.join(dir, `${id}.json`), `${JSON.stringify(task, null, 2)}\n`, { flag: 'wx' });
   return task;
@@ -109,7 +110,9 @@ export async function startTask(root, { id, goal, allow, deny = [], agent = 'uns
 export async function updateTask(root, id, updates) {
   const task = await readTask(root, id);
   for (const key of Object.keys(updates)) if (!['state', 'agent', 'summary', 'next'].includes(key)) throw new Error(`Cannot update ${key} with note.`);
-  const updated = validateTask({ ...task, ...updates, updatedAt: new Date().toISOString() });
+  const previous = Date.parse(task.updatedAt);
+  const updatedAt = new Date(Math.max(Date.now(), Number.isFinite(previous) ? previous + 1 : 0)).toISOString();
+  const updated = validateTask({ ...task, ...updates, updatedAt });
   await writeFile(path.join(root, '.agent-lanes', `${id}.json`), `${JSON.stringify(updated, null, 2)}\n`);
   return updated;
 }
