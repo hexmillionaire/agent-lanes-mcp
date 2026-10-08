@@ -66,7 +66,8 @@ async function taskDirectory(root, create = false) {
   if (create) await mkdir(dir, { recursive: true });
   try {
     const stat = await lstat(dir);
-    if (stat.isSymbolicLink() || !stat.isDirectory() || await realpath(dir) !== dir) throw new Error('Task directory must be a real directory inside the repository.');
+    const expected = path.join(await realpath(root), '.agent-lanes');
+    if (stat.isSymbolicLink() || !stat.isDirectory() || await realpath(dir) !== expected) throw new Error('Task directory must be a real directory inside the repository.');
     return dir;
   } catch (error) {
     if (!create && error.code === 'ENOENT') return null;
