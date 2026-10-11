@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- Emit genuine JSON Schema 2020-12 discovery contracts from the same Zod definitions as SDK validation.
+- Capture real stdio discovery and strictly validate output schemas/responses without changing the four read-only tools.
+- Print a tested VS Code servers/stdio configuration; retain Claude and Codex formats.
+- Refresh the shared two-module 0.4.0 engine snapshot with recorded source hashes.
+
+
 ## 0.3.0
 
 - Add validated structured results alongside existing text results; keep exactly four read-only tools.

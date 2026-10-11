@@ -8,6 +8,8 @@ import { execFileSync, spawn } from 'node:child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import Ajv2020 from 'ajv/dist/2020.js';
+import { AjvJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/ajv';
 import { createLaneServer } from '../src/server.mjs';
 import { startTask, git as executeGit } from '../vendor/agent-lanes.mjs';
 
@@ -30,7 +32,11 @@ async function fixture(t) {
 
 async function connect(t, repositories) {
   const server = createLaneServer(repositories);
-  const client = new Client({ name: 'agent-lanes-test', version: '1.0.0' });
+  const validator = new AjvJsonSchemaValidator(new Ajv2020({ strict: true, allErrors: true }));
+  const client = new Client({ name: 'agent-lanes-test', version: '1.0.0' }, { jsonSchemaValidator: { getValidator(schema) {
+    assert.equal(schema.$schema, 'https://json-schema.org/draft/2020-12/schema', 'The client accepts only the declared 2020-12 dialect.');
+    return validator.getValidator(schema);
+  } } });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
   await client.connect(clientTransport);
@@ -44,9 +50,34 @@ test('MCP handshake advertises exactly four read-only tools', async t => {
   assert.deepEqual(tools.map(tool => tool.name).sort(), ['check_scope', 'get_handoff', 'list_repositories', 'list_tasks']);
   for (const tool of tools) {
     assert.equal(tool.annotations.readOnlyHint, true);
+    assert.equal(tool.inputSchema.$schema, 'https://json-schema.org/draft/2020-12/schema');
+    assert.equal(tool.outputSchema.$schema, 'https://json-schema.org/draft/2020-12/schema');
     assert.equal(tool.outputSchema.type, 'object');
     assert.equal(tool.inputSchema.additionalProperties, false);
   }
+});
+
+test('discovery matches the captured stdio contract fixture and validates input semantics', async t => {
+  const client = await connect(t, []);
+  const discovery = await client.listTools();
+  const expected = JSON.parse(await readFile(new URL('./fixtures/tools-list.json', import.meta.url), 'utf8'));
+  assert.deepEqual(JSON.parse(JSON.stringify(discovery)), expected);
+  const validator = new AjvJsonSchemaValidator(new Ajv2020({ strict: true, allErrors: true }));
+  const tasks = discovery.tools.find(tool => tool.name === 'list_tasks');
+  const validate = validator.getValidator(tasks.inputSchema);
+  assert.equal(validate({ repository: 'repo-1', limit: 1, offset: 0 }).valid, true);
+  assert.equal(validate({ repository: 'repo-1', limit: 1.5 }).valid, false);
+  assert.equal(validate({ repository: 'repo-1', limit: 201 }).valid, false);
+  assert.equal(validate({ repository: 'repo-1', path: '/unexpected' }).valid, false);
+  assert.equal(validate({}).valid, false);
+});
+
+test('discovery override retains SDK output validation', async t => {
+  const client = await connect(t, [{ id: 'repo-1', name: undefined, path: '/unused' }]);
+  await client.listTools();
+  const result = await client.callTool({ name: 'list_repositories', arguments: {} });
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /Output validation error/);
 });
 
 test('repositories are named allowlist entries without absolute path disclosure', async t => {

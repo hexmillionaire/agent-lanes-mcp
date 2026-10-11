@@ -4,14 +4,37 @@ import { lstat, mkdir, readFile, readdir, realpath, writeFile, link, rename, unl
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
+import { hostname } from 'node:os';
 
 const execute = promisify(execFile);
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
+export { readTemplates } from './templates.mjs';
 const ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const STATES = ['planned', 'working', 'blocked', 'review', 'done'];
 const MAX_GIT_PROCESSES = 6;
 let activeGitProcesses = 0;
 const gitQueue = [];
+const WRITER_LOCK = '.write.lock';
+const WRITER_WAIT_MS = 5000;
+
+export class TaskConflictError extends Error {
+  constructor(currentTask) {
+    super('Task changed since you read it. Read the current task before saving again.');
+    this.name = 'TaskConflictError';
+    this.code = 'TASK_CONFLICT';
+    this.currentTask = currentTask;
+  }
+}
+
+export class TaskLockError extends Error {
+  constructor(owner, code = 'TASK_LOCKED') {
+    const identity = owner ? ` (PID ${owner.pid} on ${owner.hostname}, token ${owner.token})` : ' (owner metadata unavailable)';
+    super(`Task writer lock ${path.posix.join('.agent-lanes', WRITER_LOCK)}${identity}. If a writer crashed, stop all Agent Lanes and Agent Desk writers, then remove only .agent-lanes/${WRITER_LOCK} and retry. Locks are never stolen automatically.`);
+    this.name = 'TaskLockError';
+    this.code = code;
+    this.owner = owner;
+  }
+}
 
 async function acquireGitSlot(signal) {
   signal?.throwIfAborted();
@@ -161,26 +184,105 @@ async function retryFileOperation(operation) {
   }
 }
 
-export async function startTask(root, { id, goal, allow, deny = [], agent = 'unspecified', base = 'HEAD' }) {
-  validateId(id);
-  if (typeof base !== 'string' || base.startsWith('-') || !base || base.length > 256) throw new Error('Invalid Git base reference.');
-  const commit = (await git(root, ['rev-parse', '--verify', '--end-of-options', `${base}^{commit}`])).trim();
-  const now = new Date().toISOString();
-  const task = validateTask({ version: 1, id, goal, allow, deny, agent, base: commit, state: 'planned', summary: '', next: '', createdAt: now, updatedAt: now });
-  if ((await listTasks(root)).length >= 200) throw new Error('At most 200 tasks are supported per repository.');
-  const dir = await taskDirectory(root, true);
-  await writeTask(dir, task, true);
-  return task;
+async function readWriterLock(dir, { signal } = {}) {
+  signal?.throwIfAborted();
+  try {
+    const file = path.join(dir, WRITER_LOCK);
+    const stat = await lstat(file);
+    if (stat.isSymbolicLink() || !stat.isFile() || stat.size > 4096) return { locked: true, owner: null };
+    const contents = await readFile(file, { encoding: 'utf8', signal });
+    if (Buffer.byteLength(contents) > 4096) return { locked: true, owner: null };
+    let owner;
+    try { owner = JSON.parse(contents); } catch { return { locked: true, owner: null }; }
+    if (!owner || owner.version !== 1 || !Number.isSafeInteger(owner.pid) || owner.pid < 1 || typeof owner.hostname !== 'string' || !owner.hostname || owner.hostname.length > 256 || /[\x00-\x1f\x7f]/.test(owner.hostname) || !/^[a-f0-9-]{36}$/.test(owner.token) || typeof owner.createdAt !== 'string' || owner.createdAt.length > 80) return { locked: true, owner: null };
+    return { locked: true, owner: { version: 1, pid: owner.pid, hostname: owner.hostname, token: owner.token, createdAt: owner.createdAt } };
+  } catch (error) {
+    signal?.throwIfAborted();
+    if (error.code === 'ENOENT') return { locked: false, owner: null };
+    throw error;
+  }
 }
 
-export async function updateTask(root, id, updates) {
-  const task = await readTask(root, id);
+export async function writerLockStatus(root, options = {}) {
+  options.signal?.throwIfAborted();
+  const dir = await taskDirectory(root);
+  return dir ? readWriterLock(dir, options) : { locked: false, owner: null };
+}
+
+async function withWriterLock(dir, operation, { signal } = {}) {
+  signal?.throwIfAborted();
+  const owner = { version: 1, pid: process.pid, hostname: hostname(), token: randomUUID(), createdAt: new Date().toISOString() };
+  const temporary = path.join(dir, `.write-owner-${owner.token}.tmp`);
+  const destination = path.join(dir, WRITER_LOCK);
+  const deadline = performance.now() + WRITER_WAIT_MS;
+  let acquired = false;
+  let failed = false;
+  try {
+    // Publish complete owner metadata exclusively, just like new task files.
+    // A killed process can leave a lock, but cannot leave a half-written owner.
+    await writeFile(temporary, `${JSON.stringify(owner)}\n`, { flag: 'wx', mode: 0o600, signal });
+    for (;;) {
+      signal?.throwIfAborted();
+      try { await link(temporary, destination); acquired = true; break; }
+      catch (error) {
+        if (error.code !== 'EEXIST') throw error;
+        if (performance.now() >= deadline) throw new TaskLockError((await readWriterLock(dir, { signal })).owner);
+        await delay(Math.max(1, Math.min(deadline - performance.now(), 20 + Math.floor(Math.random() * 20))), undefined, { signal });
+      }
+    }
+    signal?.throwIfAborted();
+    return await operation();
+  } catch (error) {
+    failed = true;
+    signal?.throwIfAborted();
+    throw error;
+  } finally {
+    // Do not use the caller's aborted signal for cleanup. It must release a
+    // lock it owns, even when cancellation arrived immediately after acquisition.
+    try {
+      if (acquired) {
+        const current = await readWriterLock(dir);
+        if (!current.locked || current.owner?.token !== owner.token) throw new TaskLockError(current.owner, 'TASK_LOCK_COMPROMISED');
+        await retryFileOperation(() => unlink(destination));
+      }
+    } catch (error) { if (!failed) throw error; }
+    finally { await retryFileOperation(() => unlink(temporary)).catch(error => { if (error.code !== 'ENOENT' && !failed) throw error; }); }
+  }
+}
+
+export async function startTask(root, { id, goal, allow, deny = [], agent = 'unspecified', base = 'HEAD' }, options = {}) {
+  options.signal?.throwIfAborted();
+  validateId(id);
+  if (typeof base !== 'string' || base.startsWith('-') || !base || base.length > 256) throw new Error('Invalid Git base reference.');
+  const commit = (await git(root, ['rev-parse', '--verify', '--end-of-options', `${base}^{commit}`], options)).trim();
+  const now = new Date().toISOString();
+  const task = validateTask({ version: 1, id, goal, allow, deny, agent, base: commit, state: 'planned', summary: '', next: '', createdAt: now, updatedAt: now });
+  const dir = await taskDirectory(root, true);
+  return withWriterLock(dir, async () => {
+    if ((await listTasks(root, options)).length >= 200) throw new Error('At most 200 tasks are supported per repository.');
+    options.signal?.throwIfAborted();
+    await writeTask(dir, task, true);
+    return task;
+  }, options);
+}
+
+export async function updateTask(root, id, updates, { expectedUpdatedAt, signal } = {}) {
+  signal?.throwIfAborted();
+  validateId(id);
+  if (expectedUpdatedAt !== undefined) text(expectedUpdatedAt, 'expectedUpdatedAt', 80);
   for (const key of Object.keys(updates)) if (!['state', 'agent', 'summary', 'next'].includes(key)) throw new Error(`Cannot update ${key} with note.`);
-  const previous = Date.parse(task.updatedAt);
-  const updatedAt = new Date(Math.max(Date.now(), Number.isFinite(previous) ? previous + 1 : 0)).toISOString();
-  const updated = validateTask({ ...task, ...updates, updatedAt });
-  await writeTask(await taskDirectory(root), updated);
-  return updated;
+  const dir = await taskDirectory(root);
+  if (!dir) throw new Error(`Task ${id} does not exist. Start it with agent-lanes start.`);
+  return withWriterLock(dir, async () => {
+    const task = await readTaskFile(dir, id, { signal });
+    if (expectedUpdatedAt !== undefined && expectedUpdatedAt !== task.updatedAt) throw new TaskConflictError(task);
+    const previous = Date.parse(task.updatedAt);
+    const updatedAt = new Date(Math.max(Date.now(), Number.isFinite(previous) ? previous + 1 : 0)).toISOString();
+    const updated = validateTask({ ...task, ...updates, updatedAt });
+    signal?.throwIfAborted();
+    await writeTask(dir, updated);
+    return updated;
+  }, { signal });
 }
 
 export function classify(file, task) {
