@@ -7,8 +7,9 @@ export const TOOL_NAMES = ['check_scope', 'get_handoff', 'list_repositories', 'l
 export function clientConfig(client, repositories) {
   const args = [serverPath, ...repositories.flatMap(repo => ['--repo', repo.path])];
   if (client === 'claude') return JSON.stringify({ mcpServers: { 'agent-lanes': { command: process.execPath, args } } }, null, 2) + '\n';
+  if (client === 'vscode') return JSON.stringify({ servers: { 'agent-lanes': { type: 'stdio', command: process.execPath, args } } }, null, 2) + '\n';
   if (client === 'codex') return `[mcp_servers.agent_lanes]\ncommand = ${JSON.stringify(process.execPath)}\nargs = ${JSON.stringify(args)}\n`;
-  throw new Error('--print-config must be claude or codex.');
+  throw new Error('--print-config must be claude, codex, or vscode.');
 }
 
 export async function diagnose(repositories, { signal: callerSignal } = {}) {

@@ -1,6 +1,6 @@
 {
   "name": "@hexmillionaire/agent-lanes-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Read-only MCP access to portable coding-task scopes and handoffs.",
   "type": "module",
   "bin": {
@@ -43,7 +43,8 @@
     "handoff"
   ],
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "2.10.1"
+    "@modelcontextprotocol/inspector": "2.10.1",
+    "ajv": "8.20.0"
   },
   "publishConfig": {
     "access": "public"

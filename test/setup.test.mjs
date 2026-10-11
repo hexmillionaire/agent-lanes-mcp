@@ -27,6 +27,8 @@ test('prints portable Claude JSON and Codex TOML with absolute commands and path
   assert.match(toml, /^\[mcp_servers.agent_lanes\]/);
   const args = JSON.parse(toml.split('\n').find(line => line.startsWith('args = ')).slice(7));
   assert.deepEqual(args, config.mcpServers['agent-lanes'].args);
+  const vscode = JSON.parse(clientConfig('vscode', repositories));
+  assert.deepEqual(vscode, { servers: { 'agent-lanes': { type: 'stdio', ...config.mcpServers['agent-lanes'] } } });
   assert.throws(() => clientConfig('invalid', repositories));
 });
 
@@ -73,11 +75,15 @@ test('setup CLI prints JSON, resolves repository roots, and rejects mixed modes'
   const result = await run(process.execPath, [serverPath, '--repo', repositories[0].path, '--print-config', 'claude']);
   assert.equal(result.code, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout).mcpServers['agent-lanes'].args[2], await realpath(repositories[0].path));
+  const vscode = await run(process.execPath, [serverPath, '--repo', repositories[0].path, '--print-config', 'vscode']);
+  assert.equal(vscode.code, 0, vscode.stderr);
+  assert.equal(JSON.parse(vscode.stdout).servers['agent-lanes'].type, 'stdio');
+  assert.deepEqual(JSON.parse(vscode.stdout).servers['agent-lanes'].args, JSON.parse(result.stdout).mcpServers['agent-lanes'].args);
   const invalid = await run(process.execPath, [serverPath, '--repo', repositories[0].path, '--doctor', '--print-config', 'claude']);
   assert.equal(invalid.code, 1);
   assert.match(invalid.stderr, /not both/);
   const noAccess = await run(process.execPath, [serverPath, '--repo', path.join(repositories[0].path, 'absent'), '--doctor', '--print-config', 'claude']);
   assert.match(noAccess.stderr, /not both/);
   const badClient = await run(process.execPath, [serverPath, '--repo', path.join(repositories[0].path, 'absent'), '--print-config', 'unsupported']);
-  assert.match(badClient.stderr, /must be claude or codex/);
+  assert.match(badClient.stderr, /must be claude, codex, or vscode/);
 });
