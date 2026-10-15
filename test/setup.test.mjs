@@ -87,3 +87,14 @@ test('setup CLI prints JSON, resolves repository roots, and rejects mixed modes'
   const badClient = await run(process.execPath, [serverPath, '--repo', path.join(repositories[0].path, 'absent'), '--print-config', 'unsupported']);
   assert.match(badClient.stderr, /must be claude, codex, or vscode/);
 });
+
+test('--version and --help print to stdout without starting the server', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  const version = await run(process.execPath, [serverPath, '--version']);
+  assert.equal(version.code, 0, version.stderr);
+  assert.equal(version.stdout.trim(), manifest.version);
+  const help = await run(process.execPath, [serverPath, '--help']);
+  assert.equal(help.code, 0, help.stderr);
+  assert.match(help.stdout, /--repo <trusted-path>/);
+  assert.match(help.stdout, /--version/);
+});
