@@ -14,7 +14,9 @@
         "package.json",
         "package-lock.json",
         ".github/**",
-        ".gitignore"
+        ".gitignore",
+        "llms.txt",
+        "server.json"
       ],
       "deny": [
         ".agent-lanes-policy.json",
@@ -24,7 +26,8 @@
     "docs": {
       "allow": [
         "docs/**",
-        "*.md"
+        "*.md",
+        "llms.txt"
       ],
       "deny": [
         "SECURITY.md"
