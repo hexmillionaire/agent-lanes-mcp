@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add `--version`; `--help` now prints to stdout with a usage line.
+- Add `server.json` and the `mcpName` package field for the official MCP Registry.
+- Document `npx` setup for Claude Code, Claude Desktop, Cursor and Codex; add `llms.txt` and npm `homepage`/`bugs` metadata.
+
 ## 0.4.0
 
 - Emit genuine JSON Schema 2020-12 discovery contracts from the same Zod definitions as SDK validation.

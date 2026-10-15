@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { repoRoot } from '../vendor/agent-lanes.mjs';
 import { clientConfig, diagnose } from '../src/setup.mjs';
 
 try {
-  const { values } = parseArgs({ strict: true, options: { repo: { type: 'string', multiple: true }, doctor: { type: 'boolean' }, 'print-config': { type: 'string' }, help: { type: 'boolean' } } });
-  if (values.help) console.error('Agent Lanes MCP: --repo <trusted-path> (repeatable, up to 20).\n--print-config claude|codex|vscode: print an absolute-path config snippet; never modify installed client configuration.\n--doctor: verify Git repositories, task data, and a real stdio handshake.\nUses stdio by default. Repository IDs are repo-1, repo-2, etc. Four read-only tools; no model API calls.');
+  const { values } = parseArgs({ strict: true, options: { repo: { type: 'string', multiple: true }, doctor: { type: 'boolean' }, 'print-config': { type: 'string' }, help: { type: 'boolean' }, version: { type: 'boolean' } } });
+  // --help and --version never start the stdio server, so stdout is safe to use.
+  if (values.version) console.log(JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version);
+  else if (values.help) console.log('Agent Lanes MCP: read-only MCP stdio server for Agent Lanes task scopes and handoffs.\n\nUsage: agent-lanes-mcp --repo <trusted-path> [--repo <path> ...] [--doctor | --print-config claude|codex|vscode]\n\n--repo <path>: trusted Git repository (repeatable, up to 20). IDs are repo-1, repo-2, etc.\n--print-config claude|codex|vscode: print an absolute-path config snippet; never modify installed client configuration.\n--doctor: verify Git repositories, task data, and a real stdio handshake.\n--version: print the package version.\nUses stdio by default. Four read-only tools; no model API calls.');
   else {
     if (!values.repo?.length || values.repo.length > 20) throw new Error('Configure 1-20 trusted repositories with --repo.');
     if (values.doctor && values['print-config']) throw new Error('Use --doctor or --print-config, not both.');

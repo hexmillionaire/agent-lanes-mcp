@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.hexmillionaire/agent-lanes-mcp",
+  "title": "Agent Lanes",
+  "description": "Read-only audits of coding-task file scopes and handoffs from allowlisted local Git repos.",
+  "repository": {
+    "url": "https://github.com/hexmillionaire/agent-lanes-mcp",
+    "source": "github"
+  },
+  "version": "0.4.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@hexmillionaire/agent-lanes-mcp",
+      "version": "0.4.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "named",
+          "name": "--repo",
+          "description": "Absolute path of a trusted local Git repository to expose (repeatable, up to 20).",
+          "format": "filepath",
+          "valueHint": "/absolute/path/to/project",
+          "isRequired": true,
+          "isRepeated": true
+        }
+      ]
+    }
+  ]
+}
