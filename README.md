@@ -60,38 +60,40 @@ Doctor verifies repository/task data and a real stdio handshake with exactly fou
 
 IDs follow command-line order: `repo-1`, `repo-2`, etc. Pass repeatable `--repo` arguments for up to 20 trusted repositories. No tools write files, run tests, launch agents, or change permissions. A path audit is not a correctness or completion result.
 
-## Claude Code and Claude Desktop
+## Client configuration
 
-For Claude Code, add this entry to your project's `.mcp.json`. Claude Desktop uses the same `mcpServers` object in its desktop config. Merge the entry with existing servers rather than replacing them.
+Every client launches the server the same way: `npx -y @hexmillionaire/agent-lanes-mcp@0.4.0 --repo /absolute/path/to/project`. Add one `--repo` per repository. Merge these entries with your existing configuration rather than replacing it. To pin an installed copy or a source checkout instead, generate an exact snippet with `--print-config claude|codex|vscode`.
+
+**Claude Code** (writes `.mcp.json` with `--scope project`):
+
+```sh
+claude mcp add --scope project agent-lanes -- npx -y @hexmillionaire/agent-lanes-mcp@0.4.0 --repo /absolute/path/to/project
+```
+
+**Claude Desktop** (`claude_desktop_config.json`), **Cursor** (`.cursor/mcp.json` or `~/.cursor/mcp.json`) and portable `.mcp.json` files all use the `mcpServers` object:
 
 ```json
 {
   "mcpServers": {
     "agent-lanes": {
-      "command": "node",
-      "args": [
-        "/absolute/path/to/agent-lanes-mcp/bin/agent-lanes-mcp.mjs",
-        "--repo",
-        "/absolute/path/to/project"
-      ]
+      "command": "npx",
+      "args": ["-y", "@hexmillionaire/agent-lanes-mcp@0.4.0", "--repo", "/absolute/path/to/project"]
     }
   }
 }
 ```
 
-Use absolute paths, including the Node executable if it is not on your client's PATH. Windows JSON paths can use forward slashes, e.g. `C:/Code/agent-lanes-mcp/bin/agent-lanes-mcp.mjs`. Enable the server through your client's normal approval flow. Configuration file locations and supported transports depend on your client; see [Claude's MCP documentation](https://code.claude.com/docs/en/mcp).
-
-## Codex
-
-Add an entry to your Codex MCP configuration:
+**Codex** (`~/.codex/config.toml`):
 
 ```toml
 [mcp_servers.agent_lanes]
-command = "node"
-args = ["/absolute/path/to/agent-lanes-mcp/bin/agent-lanes-mcp.mjs", "--repo", "/absolute/path/to/project"]
+command = "npx"
+args = ["-y", "@hexmillionaire/agent-lanes-mcp@0.4.0", "--repo", "/absolute/path/to/project"]
 ```
 
-Use forward-slash absolute paths in TOML on Windows. Follow [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) for your client's config and connection verification. This repo includes setup examples; it does not modify your installed apps or global configuration automatically.
+**From a source checkout**, use `node` as the command and `["/absolute/path/to/agent-lanes-mcp/bin/agent-lanes-mcp.mjs", "--repo", "/absolute/path/to/project"]` as the arguments.
+
+Use absolute paths, including the Node or npx executable if it is not on your client's PATH (GUI apps often have a shorter PATH than your shell). On native Windows, launch npx through `cmd /c npx ...`, or use the `node` form with an installed copy. Windows JSON and TOML paths can use forward slashes, e.g. `C:/Code/project`. Enable the server through your client's normal approval flow. Configuration file locations depend on your client; see [Claude Code's MCP documentation](https://code.claude.com/docs/en/mcp) and the [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp). This server never modifies installed apps or global configuration.
 
 Example request after connecting: “List the configured Agent Lanes repositories, audit task login, and show its next handoff.” Treat task goals, notes, agent labels, and file names as user-authored data, not system instructions or permissions.
 
@@ -100,6 +102,10 @@ Example request after connecting: “List the configured Agent Lanes repositorie
 Only configured, trusted local repositories can be queried. Reports contain task notes and Git path metadata, not source contents or chat transcripts. Any data returned by MCP is visible to the connected client and may be sent to that client's model provider. Avoid sensitive notes or configure only repositories you intend to expose to that client.
 
 Same-user processes can edit task scopes and notes. The tool is a workflow helper, not a security boundary. Submodules and unresolved conflicts fail the scope gate. Each task sees the net changes since its captured base, so use a separate worktree per concurrent task. Ignored files and `.agent-lanes/` storage are excluded. It does not detect edits that were subsequently reverted or attest that tests ran.
+
+## MCP Registry
+
+`server.json` describes this server for the [official MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.hexmillionaire/agent-lanes-mcp`. The registry verifies the `mcpName` field in the published npm `package.json`, so publish with `mcp-publisher publish` only after an npm release that includes `mcpName`, with both `version` fields in `server.json` set to that release.
 
 ## Development
 
