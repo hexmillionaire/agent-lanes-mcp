@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.1
 
+- Update the vendored Agent Lanes core to 0.4.1: deny patterns now also match hidden files and directories.
 - Add `--version`; `--help` now prints to stdout with a usage line.
 - Add `server.json` and the `mcpName` package field for the official MCP Registry.
 - Document `npx` setup for Claude Code, Claude Desktop, Cursor and Codex; add `llms.txt` and npm `homepage`/`bugs` metadata.
