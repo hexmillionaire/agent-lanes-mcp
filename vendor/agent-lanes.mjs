@@ -7,7 +7,7 @@ import path from 'node:path';
 import { hostname } from 'node:os';
 
 const execute = promisify(execFile);
-export const VERSION = '0.4.0';
+export const VERSION = '0.4.1';
 export { readTemplates } from './templates.mjs';
 const ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const STATES = ['planned', 'working', 'blocked', 'review', 'done'];
@@ -285,9 +285,15 @@ export async function updateTask(root, id, updates, { expectedUpdatedAt, signal 
   }, { signal });
 }
 
+// Node's matcher never lets *, ** or ? match a leading dot, so `secrets/**` alone
+// misses `secrets/.key`. Deny patterns must fail closed: also compare with every
+// hidden segment prefixed by \x01, a byte validated patterns cannot contain, so
+// wildcards can cover hidden names while literal dot segments still line up.
+const exposeHidden = value => value.split('/').map(segment => segment.startsWith('.') ? `\x01${segment}` : segment).join('/');
+
 export function classify(file, task) {
   const matches = pattern => path.posix.matchesGlob(file, pattern);
-  const denied = task.deny.find(matches);
+  const denied = task.deny.find(pattern => matches(pattern) || path.posix.matchesGlob(exposeHidden(file), exposeHidden(pattern)));
   if (denied) return { verdict: 'denied', pattern: denied };
   const allowed = task.allow.find(matches);
   return allowed ? { verdict: 'allowed', pattern: allowed } : { verdict: 'outside', pattern: null };
@@ -367,7 +373,9 @@ export async function checkAll(root, options = {}) {
 
 export function handoff(report) {
   const { task, changes } = report;
-  const quote = value => String(value).split('\n').map(line => `> ${line}`).join('\n');
+  // CommonMark also ends lines at a lone CR; split on every line ending so user
+  // text cannot leave the quote block and render as handoff structure.
+  const quote = value => String(value).split(/\r\n|\r|\n/).map(line => `> ${line}`).join('\n');
   const code = value => JSON.stringify(value).replaceAll('`', '\\u0060');
   return [
     `# Agent Lanes handoff: ${task.id}`, '', '## Goal (user-authored task data)', quote(task.goal), '',

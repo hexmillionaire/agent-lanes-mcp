@@ -6,19 +6,19 @@ The server uses the official MCP TypeScript SDK over stdio. All four tools are r
 
 ## Install the current release
 
-Requires Node.js 24.8+ and Git. [Version 0.4.0 is on npm](https://www.npmjs.com/package/@hexmillionaire/agent-lanes-mcp), published October 11, 2026.
+Requires Node.js 24.8+ and Git. [Version 0.4.1 is on npm](https://www.npmjs.com/package/@hexmillionaire/agent-lanes-mcp), published October 17, 2026.
 
 ```sh
-npm install -g @hexmillionaire/agent-lanes-mcp@0.4.0
+npm install -g @hexmillionaire/agent-lanes-mcp@0.4.1
 agent-lanes-mcp --repo /absolute/path/to/project --doctor
 agent-lanes-mcp --repo /absolute/path/to/project --print-config claude
 agent-lanes-mcp --repo /absolute/path/to/project --print-config codex
 ```
 
-For a one-off diagnostic, use `npx --yes @hexmillionaire/agent-lanes-mcp@0.4.0 --repo /absolute/path/to/project --doctor`. Use the installed command above to generate client configuration. The versioned GitHub release archive remains an alternative:
+For a one-off diagnostic, use `npx --yes @hexmillionaire/agent-lanes-mcp@0.4.1 --repo /absolute/path/to/project --doctor`. Use the installed command above to generate client configuration. The versioned GitHub release archive remains an alternative:
 
 ```sh
-npm install -g https://github.com/hexmillionaire/agent-lanes-mcp/releases/download/v0.4.0/hexmillionaire-agent-lanes-mcp-0.4.0.tgz
+npm install -g https://github.com/hexmillionaire/agent-lanes-mcp/releases/download/v0.4.1/hexmillionaire-agent-lanes-mcp-0.4.1.tgz
 ```
 
 Merge the generated snippet with your client's existing configuration. The [connected quickstart](https://github.com/hexmillionaire/Agent-Lanes/blob/main/docs/QUICKSTART.md) walks through all three tools.
@@ -62,12 +62,12 @@ IDs follow command-line order: `repo-1`, `repo-2`, etc. Pass repeatable `--repo`
 
 ## Client configuration
 
-Every client launches the server the same way: `npx -y @hexmillionaire/agent-lanes-mcp@0.4.0 --repo /absolute/path/to/project`. Add one `--repo` per repository. Merge these entries with your existing configuration rather than replacing it. To pin an installed copy or a source checkout instead, generate an exact snippet with `--print-config claude|codex|vscode`.
+Every client launches the server the same way: `npx -y @hexmillionaire/agent-lanes-mcp@0.4.1 --repo /absolute/path/to/project`. Add one `--repo` per repository. Merge these entries with your existing configuration rather than replacing it. To pin an installed copy or a source checkout instead, generate an exact snippet with `--print-config claude|codex|vscode`.
 
 **Claude Code** (writes `.mcp.json` with `--scope project`):
 
 ```sh
-claude mcp add --scope project agent-lanes -- npx -y @hexmillionaire/agent-lanes-mcp@0.4.0 --repo /absolute/path/to/project
+claude mcp add --scope project agent-lanes -- npx -y @hexmillionaire/agent-lanes-mcp@0.4.1 --repo /absolute/path/to/project
 ```
 
 **Claude Desktop** (`claude_desktop_config.json`), **Cursor** (`.cursor/mcp.json` or `~/.cursor/mcp.json`) and portable `.mcp.json` files all use the `mcpServers` object:
@@ -77,7 +77,7 @@ claude mcp add --scope project agent-lanes -- npx -y @hexmillionaire/agent-lanes
   "mcpServers": {
     "agent-lanes": {
       "command": "npx",
-      "args": ["-y", "@hexmillionaire/agent-lanes-mcp@0.4.0", "--repo", "/absolute/path/to/project"]
+      "args": ["-y", "@hexmillionaire/agent-lanes-mcp@0.4.1", "--repo", "/absolute/path/to/project"]
     }
   }
 }
@@ -88,7 +88,7 @@ claude mcp add --scope project agent-lanes -- npx -y @hexmillionaire/agent-lanes
 ```toml
 [mcp_servers.agent_lanes]
 command = "npx"
-args = ["-y", "@hexmillionaire/agent-lanes-mcp@0.4.0", "--repo", "/absolute/path/to/project"]
+args = ["-y", "@hexmillionaire/agent-lanes-mcp@0.4.1", "--repo", "/absolute/path/to/project"]
 ```
 
 **From a source checkout**, use `node` as the command and `["/absolute/path/to/agent-lanes-mcp/bin/agent-lanes-mcp.mjs", "--repo", "/absolute/path/to/project"]` as the arguments.
@@ -111,7 +111,7 @@ Same-user processes can edit task scopes and notes. The tool is a workflow helpe
 
 `npm test` uses the official SDK client for discovery, real Git audits, setup helpers, validation failures, and stdio handshakes. `npm run test:inspector` independently checks strict schema discovery and all four tools using the pinned [official MCP Inspector](https://github.com/modelcontextprotocol/inspector/blob/main/clients/cli/README.md). Both run in CI on Linux, Windows, and macOS. Inspector is a development dependency, excluded from production installs. Dependencies are pinned in `package-lock.json`.
 
-The MIT engine is an unchanged Agent Lanes 0.4.0 core and template reader snapshot; [source and hash](vendor/README.md) are recorded. Update it with source tests. Related: [Agent Desk](https://github.com/hexmillionaire/agent-desk).
+The MIT engine is an unchanged Agent Lanes 0.4.1 core and template reader snapshot; [source and hash](vendor/README.md) are recorded. Update it with source tests. Related: [Agent Desk](https://github.com/hexmillionaire/agent-desk).
 
 ## Performance and reliability review
 
