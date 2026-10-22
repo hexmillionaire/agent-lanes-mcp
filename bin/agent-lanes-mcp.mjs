@@ -18,11 +18,12 @@ try {
     if (values['print-config']) process.stdout.write(clientConfig(values['print-config'], repositories));
     else if (values.doctor) console.log(JSON.stringify(await diagnose(repositories), null, 2));
     else {
-      const [{ createLaneServer }, { StdioServerTransport }] = await Promise.all([
+      const [{ createLaneServer, pinScopes }, { StdioServerTransport }] = await Promise.all([
         import('../src/server.mjs'),
         import('@modelcontextprotocol/sdk/server/stdio.js'),
       ]);
-      const server = createLaneServer(repositories);
+      // Capture every existing task's scope before any client can talk to us.
+      const server = createLaneServer(repositories, { pins: await pinScopes(repositories) });
       // SDK's stdio transport does not close itself when its input reaches EOF.
       // Closing the server aborts active request signals and their Git work.
       const closeOnEnd = () => {

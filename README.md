@@ -55,7 +55,7 @@ Doctor verifies repository/task data and a real stdio handshake with exactly fou
 | --- | --- | --- |
 | `list_repositories` | none | Repository IDs and display names |
 | `list_tasks` | `repository` | Saved goals, progress, agent labels, and notes |
-| `check_scope` | `repository`, `task` | Fresh changed-path audit against allowed/denied patterns |
+| `check_scope` | `repository`, `task` | Fresh changed-path audit against the task scope pinned at first read; `scopeChanged` flags drift |
 | `get_handoff` | `repository`, `task` | Markdown handoff with a fresh audit |
 
 IDs follow command-line order: `repo-1`, `repo-2`, etc. Pass repeatable `--repo` arguments for up to 20 trusted repositories. No tools write files, run tests, launch agents, or change permissions. A path audit is not a correctness or completion result.
@@ -101,7 +101,7 @@ Example request after connecting: “List the configured Agent Lanes repositorie
 
 Only configured, trusted local repositories can be queried. Reports contain task notes and Git path metadata, not source contents or chat transcripts. Any data returned by MCP is visible to the connected client and may be sent to that client's model provider. Avoid sensitive notes or configure only repositories you intend to expose to that client.
 
-Same-user processes can edit task scopes and notes. The tool is a workflow helper, not a security boundary. Submodules and unresolved conflicts fail the scope gate. Each task sees the net changes since its captured base, so use a separate worktree per concurrent task. Ignored files and `.agent-lanes/` storage are excluded. It does not detect edits that were subsequently reverted or attest that tests ran.
+Same-user processes can edit task notes, and a task file edited after this server started is still audited against the scope the server first read (`scopeChanged: true` in the report, a `SCOPE CHANGED` notice in the handoff). Restart the server to accept an intentionally changed scope. The tool is a workflow helper, not a security boundary. Submodules and unresolved conflicts fail the scope gate. Each task sees the net changes since its captured base, so use a separate worktree per concurrent task. Ignored files and `.agent-lanes/` storage are excluded. It does not detect edits that were subsequently reverted or attest that tests ran.
 
 ## MCP Registry
 

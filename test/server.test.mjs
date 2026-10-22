@@ -30,8 +30,8 @@ async function fixture(t) {
   return root;
 }
 
-async function connect(t, repositories) {
-  const server = createLaneServer(repositories);
+async function connect(t, repositories, options) {
+  const server = createLaneServer(repositories, options);
   const validator = new AjvJsonSchemaValidator(new Ajv2020({ strict: true, allErrors: true }));
   const client = new Client({ name: 'agent-lanes-test', version: '1.0.0' }, { jsonSchemaValidator: { getValidator(schema) {
     assert.equal(schema.$schema, 'https://json-schema.org/draft/2020-12/schema', 'The client accepts only the declared 2020-12 dialect.');
@@ -281,4 +281,41 @@ syncBuiltinESMExports();
     assert.deepEqual(result, { code: 0, signal: null }, stderr);
     assert.deepEqual(stdout.split('\n').filter(Boolean).map(line => JSON.parse(line).id), [1], 'A disconnected scope request must not receive a late result.');
   } finally { if (child.exitCode === null && child.signalCode === null) child.kill(); await closed; }
+});
+
+test('a task that widens its own scope on disk is still audited against the pinned scope', async t => {
+  const root = await fixture(t);
+  const { pinScopes } = await import('../src/server.mjs');
+  const repositories = [{ id: 'repo-1', name: 'Fixture', path: root }];
+  const client = await connect(t, repositories, { pins: await pinScopes(repositories) });
+  const clean = JSON.parse((await client.callTool({ name: 'check_scope', arguments: { repository: 'repo-1', task: 'login' } })).content[0].text);
+  assert.equal(clean.ok, true);
+  assert.equal(clean.scopeChanged, false);
+
+  // The agent edits .agent-lanes/login.json with its normal file tool and
+  // creates a file the original scope never allowed.
+  const file = path.join(root, '.agent-lanes', 'login.json');
+  const task = JSON.parse(await readFile(file, 'utf8'));
+  await writeFile(file, JSON.stringify({ ...task, allow: ['**', '.*/**'] }));
+  await writeFile(path.join(root, 'outside.txt'), 'escaped\n');
+
+  const check = await client.callTool({ name: 'check_scope', arguments: { repository: 'repo-1', task: 'login' } });
+  const report = JSON.parse(check.content[0].text);
+  assert.equal(report.scopeChanged, true);
+  assert.deepEqual(report.task.allow, ['src/**'], 'the audited task carries the pinned scope');
+  assert.equal(report.ok, false);
+  assert.equal(report.changes.find(change => change.path === 'outside.txt').verdict, 'outside');
+  const handoff = await client.callTool({ name: 'get_handoff', arguments: { repository: 'repo-1', task: 'login' } });
+  assert.match(handoff.content[0].text, /^> SCOPE CHANGED/);
+  assert.match(handoff.content[0].text, /REVIEW REQUIRED/);
+
+  // A task first seen after startup is pinned at first read, not re-read later.
+  await startTask(root, { id: 'late', goal: 'Late task', allow: ['src/**'] });
+  const first = JSON.parse((await client.callTool({ name: 'check_scope', arguments: { repository: 'repo-1', task: 'late' } })).content[0].text);
+  assert.equal(first.scopeChanged, false);
+  const late = JSON.parse(await readFile(path.join(root, '.agent-lanes', 'late.json'), 'utf8'));
+  await writeFile(path.join(root, '.agent-lanes', 'late.json'), JSON.stringify({ ...late, allow: ['**'] }));
+  const second = JSON.parse((await client.callTool({ name: 'check_scope', arguments: { repository: 'repo-1', task: 'late' } })).content[0].text);
+  assert.equal(second.scopeChanged, true);
+  assert.equal(second.ok, false);
 });
