@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Security: `check_scope` and `get_handoff` audit against the task scope (allow, deny, base) pinned when this server first read the task, at startup for existing tasks. A model could previously widen its own `allow` list by editing `.agent-lanes/<id>.json` with an ordinary file write, then ask `check_scope` to confirm it stayed in scope; the audit filters `.agent-lanes/` out of the change list, so nothing showed. Reports now carry `scopeChanged`, and handoffs start with a `SCOPE CHANGED` notice when the on-disk scope has drifted.
+- The dogfood policy denies `.github/workflows/**`, and the scope workflow pins the Agent Lanes action to the 0.4.1 release commit.
+
 ## 0.4.1
 
 - Update the vendored Agent Lanes core to 0.4.1: deny patterns now also match hidden files and directories.

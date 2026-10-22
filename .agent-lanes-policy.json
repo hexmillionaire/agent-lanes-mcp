@@ -20,7 +20,8 @@
       ],
       "deny": [
         ".agent-lanes-policy.json",
-        "LICENSE"
+        "LICENSE",
+        ".github/workflows/**"
       ]
     },
     "docs": {
@@ -30,7 +31,8 @@
         "llms.txt"
       ],
       "deny": [
-        "SECURITY.md"
+        "SECURITY.md",
+        ".github/workflows/**"
       ]
     }
   }
