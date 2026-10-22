@@ -14,6 +14,7 @@ const reportSchema = z.object({
   version: z.literal(1), task: taskSchema, branch: z.string(), head: z.string(), checkedAt: z.string(),
   changes: z.array(z.object({ status: z.string(), path: z.string(), verdict: z.enum(['allowed', 'outside', 'denied']), pattern: z.string().nullable() }).strict()),
   conflicts: z.array(z.string()), submodules: z.array(z.string()),
+  ignored: z.array(z.string()).describe('Untracked entries hidden by repository ignore rules (directories collapsed). Listed for review, not audited against the scope.'),
   counts: z.object({ allowed: z.number().int().nonnegative(), outside: z.number().int().nonnegative(), denied: z.number().int().nonnegative() }).strict(),
   ok: z.boolean(),
   scopeChanged: z.boolean().describe('True when the task file on disk now declares different allow, deny or base values than this server pinned when it first read the task. The audit above used the pinned scope.'),

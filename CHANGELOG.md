@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Security: re-vendor the Agent Lanes core from the `security/audit-fixes` branch: deny patterns also match case-folded, NFC-normalised paths; local audits ignore the global Git excludes file and report entries hidden by repository ignore rules in a new `ignored` field; `parseRawDiff` is exported. `check_scope` output now carries `ignored`.
+- Bump the dev-only `@modelcontextprotocol/inspector` from 2.10.1 to 2.12.0 to clear its advisories; the inspector smoke test still passes.
 - Security: `check_scope` and `get_handoff` audit against the task scope (allow, deny, base) pinned when this server first read the task, at startup for existing tasks. A model could previously widen its own `allow` list by editing `.agent-lanes/<id>.json` with an ordinary file write, then ask `check_scope` to confirm it stayed in scope; the audit filters `.agent-lanes/` out of the change list, so nothing showed. Reports now carry `scopeChanged`, and handoffs start with a `SCOPE CHANGED` notice when the on-disk scope has drifted.
 - The dogfood policy denies `.github/workflows/**`, and the scope workflow pins the Agent Lanes action to the 0.4.1 release commit.
 

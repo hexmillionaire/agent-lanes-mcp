@@ -159,6 +159,13 @@
               "type": "string"
             }
           },
+          "ignored": {
+            "description": "Untracked entries hidden by repository ignore rules (directories collapsed). Listed for review, not audited against the scope.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "counts": {
             "type": "object",
             "properties": {
@@ -202,6 +209,7 @@
           "changes",
           "conflicts",
           "submodules",
+          "ignored",
           "counts",
           "ok",
           "scopeChanged"

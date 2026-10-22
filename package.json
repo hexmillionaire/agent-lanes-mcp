@@ -57,7 +57,7 @@
     "task-scope"
   ],
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "2.10.1",
+    "@modelcontextprotocol/inspector": "2.12.0",
     "ajv": "8.20.0"
   },
   "publishConfig": {
