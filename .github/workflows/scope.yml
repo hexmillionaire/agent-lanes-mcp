@@ -18,7 +18,7 @@ jobs:
         env:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: git fetch --no-tags origin "$PR_HEAD"
-      - uses: hexmillionaire/Agent-Lanes@0e72c4b6de1282ac5643875ef8723bfec222e4ed # v0.4.1 (Release 0.4.1, #6)
+      - uses: hexmillionaire/Agent-Lanes@974d3cb5ce2c37bd1d93d959283a20daa169a0b4 # reviewed 0.4.2 shared engine
         with:
           lane: development
           base: ${{ github.event.pull_request.base.sha }}
