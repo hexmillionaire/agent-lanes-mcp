@@ -1,12 +1,12 @@
 {
-  "version": "0.4.1",
+  "version": "0.4.2",
   "files": {
     "agent-lanes.mjs": {
-      "source": "https://github.com/hexmillionaire/Agent-Lanes/blob/1bf7d2d3e834e29fd6385ce8632ab40df852491a/src/core.mjs",
-      "sha256": "00b7f63d5e3caa98fa03d78e7dce389298fb8df3429836fa0d1d25d2924df5c8"
+      "source": "https://github.com/hexmillionaire/Agent-Lanes/blob/v0.4.2/src/core.mjs",
+      "sha256": "ff996e75dc3c4cf8e50ef9c2d510eefa3b7849b3b3e426988b66fff4f4d102ce"
     },
     "templates.mjs": {
-      "source": "https://github.com/hexmillionaire/Agent-Lanes/blob/v0.4.1/src/templates.mjs",
+      "source": "https://github.com/hexmillionaire/Agent-Lanes/blob/v0.4.2/src/templates.mjs",
       "sha256": "6a03bdc071289b90498376b8a3f16b435d698e134c1d4fa61341696938e46881"
     }
   }
