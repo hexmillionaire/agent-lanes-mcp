@@ -1,13 +1,14 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { lstat, mkdir, readFile, readdir, realpath, writeFile, link, rename, unlink } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { lstat, mkdir, open, readFile, readdir, realpath, writeFile, link, rename, unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import { hostname } from 'node:os';
 
 const execute = promisify(execFile);
-export const VERSION = '0.4.1';
+export const VERSION = '0.4.2';
 export { readTemplates } from './templates.mjs';
 const ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const STATES = ['planned', 'working', 'blocked', 'review', 'done'];
@@ -132,8 +133,34 @@ async function readTaskFile(dir, id, { signal } = {}) {
   const file = path.join(dir, `${id}.json`);
   const stat = await lstat(file);
   if (stat.isSymbolicLink() || !stat.isFile() || stat.size > 65536) throw new Error('Task must be a regular JSON file under 64 KiB.');
-  const contents = await readFile(file, { encoding: 'utf8', signal });
-  if (Buffer.byteLength(contents) > 65536) throw new Error('Task must be a regular JSON file under 64 KiB.');
+  const handle = await open(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  let contents;
+  try {
+    const opened = await handle.stat();
+    if (!opened.isFile() || opened.size > 65536) throw new Error('Task must be a regular JSON file under 64 KiB.');
+    // An atomic task publication may replace the inode between lstat and open.
+    // Accept its complete regular file, while rejecting a substituted symlink.
+    if (opened.dev !== stat.dev || opened.ino !== stat.ino) {
+      const current = await lstat(file);
+      if (current.isSymbolicLink() || !current.isFile() || current.dev !== opened.dev || current.ino !== opened.ino) throw new Error('Task changed while opening. Retry the read.');
+    }
+    // Checking readFile's result after allocation does not bound a file that
+    // grows after stat. Read at most the limit plus one byte from this descriptor.
+    const bytes = Buffer.alloc(65537);
+    let length = 0;
+    while (length < bytes.length) {
+      signal?.throwIfAborted();
+      const { bytesRead } = await handle.read(bytes, length, bytes.length - length, null);
+      if (!bytesRead) break;
+      length += bytesRead;
+    }
+    signal?.throwIfAborted();
+    if (length > 65536) throw new Error('Task must be a regular JSON file under 64 KiB.');
+    const after = await handle.stat();
+    if (after.size !== opened.size || after.mtimeMs !== opened.mtimeMs) throw new Error('Task changed while being read. Retry the read.');
+    try { contents = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, length)); }
+    catch { throw new Error('Task must contain valid UTF-8 JSON.'); }
+  } finally { await handle.close(); }
   const task = validateTask(JSON.parse(contents));
   if (task.id !== id) throw new Error('Task ID does not match its filename.');
   return task;

@@ -319,3 +319,45 @@ test('a task that widens its own scope on disk is still audited against the pinn
   assert.equal(second.scopeChanged, true);
   assert.equal(second.ok, false);
 });
+
+test('real stdio task listing pins a task created after server startup before its first audit', async t => {
+  const root = await fixture(t);
+  const client = new Client({ name: 'late-list-pin-test', version: '1.0.0' });
+  const transport = new StdioClientTransport({ command: process.execPath, args: [fileURLToPath(new URL('../bin/agent-lanes-mcp.mjs', import.meta.url)), '--repo', root], stderr: 'pipe' });
+  transport.stderr?.resume();
+  t.after(() => client.close());
+  await client.connect(transport);
+  await startTask(root, { id: 'late-listed', goal: 'Late listed task', allow: ['src/**'] });
+  const listed = await client.callTool({ name: 'list_tasks', arguments: { repository: 'repo-1' } });
+  assert.deepEqual(listed.structuredContent.tasks.find(task => task.id === 'late-listed').allow, ['src/**']);
+  const file = path.join(root, '.agent-lanes', 'late-listed.json');
+  const saved = JSON.parse(await readFile(file, 'utf8'));
+  await writeFile(file, JSON.stringify({ ...saved, allow: ['**'] }));
+  await writeFile(path.join(root, 'outside.txt'), 'outside the listed scope\n');
+  const result = await client.callTool({ name: 'check_scope', arguments: { repository: 'repo-1', task: 'late-listed' } });
+  assert.notEqual(result.isError, true);
+  assert.equal(result.structuredContent.scopeChanged, true);
+  assert.deepEqual(result.structuredContent.task.allow, ['src/**']);
+  assert.equal(result.structuredContent.ok, false);
+  const handoff = await client.callTool({ name: 'get_handoff', arguments: { repository: 'repo-1', task: 'late-listed' } });
+  assert.match(handoff.structuredContent.handoff, /^> SCOPE CHANGED/);
+});
+
+test('scope pins stay bounded without forgetting existing or deleted task identities', async t => {
+  const root = await fixture(t);
+  const { pinKey } = await import('../src/server.mjs');
+  const saved = JSON.parse(await readFile(path.join(root, '.agent-lanes', 'login.json'), 'utf8'));
+  const scope = { allow: saved.allow, deny: saved.deny, base: saved.base };
+  const pins = new Map(Array.from({ length: 200 }, (_, index) => [pinKey('repo-1', index ? 'retired-' + index : 'login'), scope]));
+  const client = await connect(t, [{ id: 'repo-1', name: 'Fixture', path: root }], { pins });
+  await startTask(root, { id: 'late-beyond-cap', goal: 'New task after retired IDs', allow: ['src/**'] });
+  for (const name of ['list_tasks', 'check_scope']) {
+    const result = await client.callTool({ name, arguments: { repository: 'repo-1', ...(name === 'check_scope' ? { task: 'late-beyond-cap' } : {}) } });
+    assert.equal(result.isError, true);
+    assert.match(result.content[0].text, /200 distinct task scopes.*Restart the server/);
+  }
+  assert.equal(pins.size, 200);
+  const existing = await client.callTool({ name: 'check_scope', arguments: { repository: 'repo-1', task: 'login' } });
+  assert.notEqual(existing.isError, true);
+  assert.equal(existing.structuredContent.scopeChanged, false);
+});

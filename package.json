@@ -1,6 +1,6 @@
 {
   "name": "@hexmillionaire/agent-lanes-mcp",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Read-only MCP server that lets Claude Code, Codex, Cursor and other MCP clients audit coding-task file scopes and fetch handoffs from local Git repos.",
   "mcpName": "io.github.hexmillionaire/agent-lanes-mcp",
   "type": "module",
@@ -28,8 +28,8 @@
     "node": ">=24.8.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
-    "zod": "4.6.5"
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
   },
   "repository": {
     "type": "git",
@@ -57,7 +57,7 @@
     "task-scope"
   ],
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "2.12.0",
+    "@modelcontextprotocol/inspector": "2.13.0",
     "ajv": "8.20.0"
   },
   "publishConfig": {
