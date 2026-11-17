@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Releases publish from `.github/workflows/publish.yml` on a version tag, using npm trusted publishing (OIDC, no stored token) with a provenance attestation.
+
 ## 0.4.2
 
 - Pin scopes read by task listing before returning, closing the gap for tasks created after server startup that were widened before their first audit.
